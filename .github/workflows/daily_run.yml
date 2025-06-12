@@ -25,6 +25,7 @@ jobs:
           sudo apt update
           sudo apt install -y ffmpeg
           pip install -r requirements.txt
+          pip show Pillow
 
       - name: Run Python script to generate reel
         run: python generate_reel.py
