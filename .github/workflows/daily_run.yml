@@ -8,6 +8,7 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,19 +26,24 @@ jobs:
           sudo apt install -y ffmpeg
           pip install -r requirements.txt
 
-      - name: Run Python script
+      - name: Run Python script to generate reel
         run: python generate_reel.py
 
-      - name: Upload to Instagram
-        run: python upload_to_instagram.py
-        env:
-          INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
-          INSTAGRAM_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
+      - name: Move reel to GitHub Pages folder
+        run: |
+          mkdir -p docs/output
+          cp output/reel_*.mp4 docs/output/
 
-      - name: Commit and push changes
+      - name: Commit and push reel to GitHub Pages
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add message_tracker.json
-          git commit -m "Update message tracker after daily reel" || exit 0
-          git push 
+          git add message_tracker.json docs/output/reel_*.mp4
+          git commit -m "Update message tracker and new reel" || exit 0
+          git push
+
+      - name: Upload to Instagram via Graph API
+        run: python upload_to_instagram.py
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
