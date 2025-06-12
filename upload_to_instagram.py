@@ -1,8 +1,8 @@
 import requests
 from datetime import datetime
 
-ACCESS_TOKEN = "YOUR_LONG_LIVED_ACCESS_TOKEN"
-INSTAGRAM_ID = "YOUR_INSTAGRAM_BUSINESS_ID"
+ACCESS_TOKEN = os.environ["IG_ACCESS_TOKEN"]
+INSTAGRAM_ID = os.environ["IG_USER_ID"]
 
 def upload_reel():
     today = datetime.now().strftime('%Y%m%d')
