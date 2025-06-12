@@ -121,7 +121,7 @@ def generate_reel():
     # Step 3: Load and prepare video
     video_path = get_random_background()
     clip = VideoFileClip(video_path)
-    clip = clip.resize((1080, 1920))
+    clip = clip.resize((1080, 1920), method="bilinear")
     
     # Get audio duration
     audioclip = AudioFileClip(audio_path)
