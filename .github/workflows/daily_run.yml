@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -24,4 +26,18 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Python script
-        run: python generate_reel.py 
+        run: python generate_reel.py
+
+      - name: Upload to Instagram
+        run: python upload_to_instagram.py
+        env:
+          INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+          INSTAGRAM_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add message_tracker.json
+          git commit -m "Update message tracker after daily reel" || exit 0
+          git push 

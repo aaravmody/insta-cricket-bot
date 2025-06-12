@@ -2,6 +2,7 @@ import os
 import asyncio
 import edge_tts
 import random
+import json
 from moviepy.editor import *
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
@@ -9,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 # Paths
 base_path = os.path.dirname(os.path.abspath(__file__))
 comments_path = os.path.join(base_path, "cricket_comments.txt")
+tracker_path = os.path.join(base_path, "message_tracker.json")
 background_folder = os.path.join(base_path, "background")
 output_path = os.path.join(base_path, "output")
 audio_path = os.path.join(base_path, "audio.mp3")
@@ -34,17 +36,61 @@ def create_text_image(text, size=(900, 300), font_size=100):
     return text_img_path
 
 def get_next_comment():
+    # Read the tracker
+    try:
+        with open(tracker_path, 'r') as f:
+            tracker = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        tracker = {"last_used_message": 0}
+    
+    # Read all messages
     with open(comments_path, "r") as f:
-        comments = [line.strip() for line in f if line.strip()]
-    if not comments:
-        return "No comments available."
-    for i, comment in enumerate(comments):
-        if not comment.startswith('#'):
-            comments[i] = '#' + comment
-            with open(comments_path, "w") as f:
-                f.write("\n".join(comments))
-            return comment
-    return "All comments have been used."
+        content = f.read()
+    
+    # Split by numbered messages
+    messages = []
+    current_message = []
+    current_number = None
+    
+    for line in content.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Check if line starts with a number followed by a period
+        if line[0].isdigit() and '. ' in line:
+            if current_message:
+                messages.append((current_number, '\n'.join(current_message)))
+            current_number = int(line.split('.')[0])
+            current_message = [line.split('. ', 1)[1]]
+        else:
+            current_message.append(line)
+    
+    # Add the last message
+    if current_message:
+        messages.append((current_number, '\n'.join(current_message)))
+    
+    # Sort messages by number
+    messages.sort(key=lambda x: x[0])
+    
+    # Find the next message after the last used one
+    for number, message in messages:
+        if number > tracker["last_used_message"]:
+            # Update tracker
+            tracker["last_used_message"] = number
+            with open(tracker_path, 'w') as f:
+                json.dump(tracker, f, indent=4)
+            return message
+    
+    # If we've used all messages, start over
+    if messages:
+        first_message = messages[0]
+        tracker["last_used_message"] = first_message[0]
+        with open(tracker_path, 'w') as f:
+            json.dump(tracker, f, indent=4)
+        return first_message[1]
+    
+    return "No messages available."
 
 def get_random_background():
     backgrounds = [f for f in os.listdir(background_folder) if f.endswith(('.mp4', '.avi', '.mov'))]
@@ -52,8 +98,19 @@ def get_random_background():
         raise FileNotFoundError("No background videos found in the background folder.")
     return os.path.join(background_folder, random.choice(backgrounds))
 
+def extend_video(clip, target_duration):
+    if clip.duration >= target_duration:
+        return clip
+    
+    # Calculate how many times we need to loop the video
+    loops = int(target_duration / clip.duration) + 1
+    extended_clip = clip.loop(loops)
+    
+    # Trim to exact target duration
+    return extended_clip.subclip(0, target_duration)
+
 def generate_reel():
-    # Step 1: Pick the next comment line-by-line
+    # Step 1: Pick the next comment
     comment = get_next_comment()
     print(f"📝 Today's comment: {comment}")
 
@@ -61,18 +118,20 @@ def generate_reel():
     asyncio.run(generate_tts(comment, audio_path))
     print("🔊 TTS audio saved.")
 
-    # Step 3: Load and trim video (30 seconds max)
+    # Step 3: Load and prepare video
     video_path = get_random_background()
     clip = VideoFileClip(video_path)
-    if clip.duration > 30:
-        start_time = random.uniform(0, clip.duration - 30)
-        clip = clip.subclip(start_time, start_time + 30)
     clip = clip.resize((1080, 1920))
+    
+    # Get audio duration
+    audioclip = AudioFileClip(audio_path)
+    duration = audioclip.duration
+    
+    # Extend video if needed
+    clip = extend_video(clip, duration)
 
     # Step 4: Animate subtitles phrase-by-phrase (3-4 words per phrase)
     words = comment.split()
-    audioclip = AudioFileClip(audio_path)
-    duration = audioclip.duration
     phrase_size = 3  # Number of words per phrase
     phrases = [' '.join(words[i:i + phrase_size]) for i in range(0, len(words), phrase_size)]
     phrase_duration = duration / len(phrases)
