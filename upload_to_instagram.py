@@ -6,7 +6,7 @@ INSTAGRAM_ID = os.environ["IG_USER_ID"]
 
 def upload_reel():
     today = datetime.now().strftime('%Y%m%d')
-    video_url = f"https://yourusername.github.io/auto-instagram-reels/output/reel_{today}.mp4"
+    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{today}.mp4"
     caption = "Your funny cricket comment here #cricket"
 
     create_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media"
