@@ -6,7 +6,7 @@ import json
 from moviepy.editor import *
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
-
+Image.ANTIALIAS = Image.LANCZOS
 # Paths
 base_path = os.path.dirname(os.path.abspath(__file__))
 comments_path = os.path.join(base_path, "cricket_comments.txt")
