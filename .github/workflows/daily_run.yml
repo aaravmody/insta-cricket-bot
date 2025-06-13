@@ -2,7 +2,7 @@ name: Daily Reel Generator
 
 on:
   schedule:
-    - cron: "30 16 * * *"  # Runs at 10:00 PM IST (16:30 UTC)
+    - cron: "30 16 * * *"  # 10:00 PM IST
   workflow_dispatch:
 
 jobs:
@@ -13,54 +13,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history for proper versioning
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@4
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Clean environment before install
-        run: |
-        pip uninstall -y moviepy
-        pip install --no-cache-dir -r requirements.txt
-
-
-      - name: Install dependencies
+      - name: Install system packages and dependencies
         run: |
           sudo apt update
           sudo apt install -y ffmpeg
-          pip uninstall -y moviepy
-          pip install -r requirements.txt
-          pip show Pillow
 
-      - name: Set up virtual environment
-        run: |
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
 
-          
-          # Create necessary directories
-          mkdir -p output
-          mkdir -p fonts
-          
-          # Download Montserrat-Bold font if not exists
+          mkdir -p output fonts
+
+          # Download font if not exists
           if [ ! -f fonts/Montserrat-Bold.ttf ]; then
             wget -O fonts/Montserrat-Bold.ttf https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf
           fi
-          
-          # Initialize message_tracker.json if not exists
+
+          # Initialize tracker if needed
           if [ ! -f message_tracker.json ]; then
             echo '{"last_used_message": 0}' > message_tracker.json
           fi
 
-      - name: Run Python script to generate reel
+      - name: Run script to generate reel
         run: |
           source venv/bin/activate
           python generate_reel.py || exit 1
-          if [ ! -f output/reel_*.mp4 ]; then
+
+          if ! ls output/reel_*.mp4 1> /dev/null 2>&1; then
             echo "No reel was generated!"
             exit 1
           fi
@@ -75,7 +62,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add message_tracker.json docs/output/reel_*.mp4
-          git commit -m "Update message tracker and new reel" || exit 0
+          git commit -m "Update message tracker and new reel" || echo "Nothing to commit"
           git push
 
       - name: Upload to Instagram via Graph API
@@ -84,6 +71,8 @@ jobs:
             echo "Instagram credentials not set!"
             exit 1
           fi
+
+          source venv/bin/activate
           python upload_to_instagram.py || exit 1
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
