@@ -24,6 +24,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y ffmpeg
+          pip uninstall -y moviepy
           pip install -r requirements.txt
           pip show Pillow
 
