@@ -20,6 +20,12 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Clean environment before install
+        run: |
+        pip uninstall -y moviepy
+        pip install --no-cache-dir -r requirements.txt
+
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -27,6 +33,14 @@ jobs:
           pip uninstall -y moviepy
           pip install -r requirements.txt
           pip show Pillow
+
+      - name: Set up virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
           
           # Create necessary directories
           mkdir -p output
@@ -44,6 +58,7 @@ jobs:
 
       - name: Run Python script to generate reel
         run: |
+          source venv/bin/activate
           python generate_reel.py || exit 1
           if [ ! -f output/reel_*.mp4 ]; then
             echo "No reel was generated!"
