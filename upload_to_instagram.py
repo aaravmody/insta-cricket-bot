@@ -7,17 +7,18 @@ from datetime import datetime
 ACCESS_TOKEN = os.environ["IG_ACCESS_TOKEN"]
 INSTAGRAM_ID = os.environ["IG_USER_ID"]
 
+base_path = os.path.dirname(os.path.abspath(__file__))
+tracker_path = os.path.join(base_path, "message_tracker.json")
+comments_path = os.path.join(base_path, "cricket_comments.txt")
+
 def get_todays_comment():
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    comments_path = os.path.join(base_path, "cricket_comments.txt")
-    
     with open(comments_path, "r") as f:
         content = f.read()
     
     comments = []
     current_comment = []
     current_number = None
-    
+
     for line in content.split('\n'):
         line = line.strip()
         if not line:
@@ -33,24 +34,24 @@ def get_todays_comment():
     
     if current_comment:
         comments.append((current_number, '\n'.join(current_comment)))
-    
+
     try:
-        tracker_path = os.path.join(base_path, "message_tracker.json")
         with open(tracker_path, "r") as f:
             tracker = json.load(f)
             last_used = tracker.get("last_used_message", 0)
     except:
         last_used = 0
-    
+
     for number, comment in comments:
         if number == last_used:
-            return comment
-    return "No comment available"
+            return number, comment
+    
+    return None, "No comment available"
 
 def upload_reel():
     today = datetime.now().strftime('%Y%m%d')
     video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{today}.mp4"
-    caption = get_todays_comment()
+    comment_number, caption = get_todays_comment()
 
     print("Uploading reel to Instagram...")
     create_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media"
@@ -72,7 +73,7 @@ def upload_reel():
     print("Waiting for video processing to finish...")
     status_url = f"https://graph.facebook.com/v19.0/{creation_id}?fields=status_code&access_token={ACCESS_TOKEN}"
     
-    for i in range(10):  # retry up to 10 times
+    for i in range(10):
         time.sleep(5)
         status_resp = requests.get(status_url).json()
         status = status_resp.get("status_code")
@@ -91,6 +92,15 @@ def upload_reel():
     }
     publish_resp = requests.post(publish_url, data=publish_params).json()
     print("✅ Publish response:", publish_resp)
+
+    if "id" in publish_resp:
+        # ✅ Save next message number to tracker
+        try:
+            with open(tracker_path, "w") as f:
+                json.dump({"last_used_message": comment_number + 1}, f)
+            print(f"📌 Updated message_tracker to {comment_number + 1}")
+        except Exception as e:
+            print("⚠️ Failed to update tracker:", e)
 
 if __name__ == "__main__":
     upload_reel()
