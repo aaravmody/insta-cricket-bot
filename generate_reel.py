@@ -117,31 +117,47 @@ def generate_reel():
     final_clip = CompositeVideoClip([clip] + text_clips).set_audio(audioclip)
     filename = f"reel_{comment_number}.mp4"
     output_file = os.path.join(output_path, filename)
-    # Save original temp file
-    temp_output = os.path.join(output_path, f"temp_{filename}")
-    final_clip.write_videofile(temp_output, fps=24, codec="libx264", audio_codec="aac")
-
-    # Re-encode with ffmpeg to fix compatibility
-    final_encoded = output_file
-    os.system(
-        f'ffmpeg -y -i "{temp_output}" -vcodec libx264 -acodec aac -pix_fmt yuv420p "{final_encoded}"'
+    
+    # Improved encoding settings for Instagram compatibility
+    print("🎬 Encoding video for Instagram...")
+    final_clip.write_videofile(
+        output_file, 
+        fps=30,  # Instagram prefers 30fps
+        codec="libx264",
+        audio_codec="aac",
+        temp_audiofile="temp-audio.m4a",
+        remove_temp=True,
+        preset="medium",  # Balance between speed and quality
+        ffmpeg_params=[
+            "-pix_fmt", "yuv420p",  # Ensure compatibility
+            "-crf", "23",           # Good quality
+            "-maxrate", "8000k",    # Max bitrate for Instagram
+            "-bufsize", "12000k",   # Buffer size
+            "-movflags", "+faststart"  # Optimize for streaming
+        ]
     )
 
-    # Clean up temp file
-    os.remove(temp_output)
-
-
+    # Clean up temporary files
     os.remove(audio_path)
     if os.path.exists(text_img_path):
         os.remove(text_img_path)
 
+    # Update tracker
     with open(tracker_path, "w") as f:
         json.dump({"last_used_message": comment_number}, f)
 
     print(f"✅ Reel saved to: {output_file}")
+    
+    # Verify file was created and has reasonable size
+    if os.path.exists(output_file):
+        file_size = os.path.getsize(output_file) / (1024 * 1024)  # MB
+        print(f"📊 File size: {file_size:.2f} MB")
+        if file_size < 0.1:
+            print("⚠️ Warning: File size seems too small")
+        elif file_size > 100:
+            print("⚠️ Warning: File size seems too large for Instagram")
+    
     return output_file, comment
-    
-    
 
 if __name__ == "__main__":
     generate_reel()

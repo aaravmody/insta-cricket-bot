@@ -56,54 +56,85 @@ def wait_for_github_pages_sync(video_url, max_attempts=30, delay=10):
     print("⏳ Waiting for GitHub Pages to sync...")
     for attempt in range(max_attempts):
         try:
-            response = requests.head(video_url)
+            response = requests.head(video_url, timeout=30)
             if response.status_code == 200:
                 print("✅ GitHub Pages sync complete!")
                 return True
-        except:
-            pass
+        except Exception as e:
+            print(f"⚠️ Sync check error: {str(e)}")
         print(f"⏳ Check {attempt + 1}/{max_attempts}: Still syncing...")
         time.sleep(delay)
     return False
 
-def check_media_status(creation_id, max_attempts=30, delay=10):
-    """Check the status of the media processing"""
+def check_media_status(creation_id, max_attempts=60, delay=15):
+    """Check the status of the media processing - increased timeout"""
     status_url = f"https://graph.facebook.com/v19.0/{creation_id}"
-    params = {"access_token": ACCESS_TOKEN}
+    params = {"access_token": ACCESS_TOKEN, "fields": "status_code,status"}
+    
+    print(f"🔄 Starting media processing check (max {max_attempts * delay / 60:.1f} minutes)...")
     
     for attempt in range(max_attempts):
         try:
-            response = requests.get(status_url, params=params)
+            response = requests.get(status_url, params=params, timeout=30)
+            
+            if response.status_code != 200:
+                print(f"⚠️ API returned status {response.status_code}: {response.text}")
+                time.sleep(delay)
+                continue
+                
             data = response.json()
+            print(f"🔍 Raw response: {data}")
             
             if "status_code" in data:
                 status = data["status_code"]
-                print(f"🔁 Check {attempt + 1}: Status = {status}")
+                print(f"🔁 Check {attempt + 1}/{max_attempts}: Status = {status}")
                 
                 if status == "FINISHED":
                     print("✅ Media processing complete!")
                     return True
                 elif status == "ERROR":
                     print("❌ Media processing failed!")
+                    print(f"Error details: {data}")
                     return False
+                elif status in ["IN_PROGRESS", "PUBLISHED"]:
+                    print(f"🔄 Status: {status} - continuing to wait...")
+                else:
+                    print(f"🤔 Unknown status: {status}")
+                
+            else:
+                print(f"⚠️ No status_code in response: {data}")
                 
             time.sleep(delay)
+            
+        except requests.exceptions.Timeout:
+            print(f"⏰ Request timeout on attempt {attempt + 1}")
+            time.sleep(delay)
         except Exception as e:
-            print(f"⚠️ Error checking status: {str(e)}")
+            print(f"⚠️ Error checking status (attempt {attempt + 1}): {str(e)}")
             time.sleep(delay)
     
     print("❌ Instagram did not finish processing in time.")
     return False
 
 def upload_reel():
-    today = datetime.now().strftime('%Y%m%d')
-    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{today}.mp4"
+    # Get the current message number from tracker
+    try:
+        with open("message_tracker.json", "r") as f:
+            tracker = json.load(f)
+            message_number = tracker.get("last_used_message", 1)
+    except:
+        message_number = 1
+    
+    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{message_number}.mp4"
     caption = get_todays_comment()
+
+    print(f"🎬 Attempting to upload: {video_url}")
+    print(f"📝 Caption: {caption[:100]}...")
 
     # Wait for GitHub Pages to sync
     if not wait_for_github_pages_sync(video_url):
         print("❌ Failed to sync with GitHub Pages")
-        return
+        return False
 
     # Create the media container
     print("📤 Creating media container...")
@@ -116,18 +147,28 @@ def upload_reel():
     }
     
     try:
-        create_resp = requests.post(create_url, data=create_params).json()
-        creation_id = create_resp.get("id")
+        print("🔗 Making request to Instagram API...")
+        create_resp = requests.post(create_url, data=create_params, timeout=60)
+        
+        if create_resp.status_code != 200:
+            print(f"❌ Create request failed with status {create_resp.status_code}")
+            print(f"Response: {create_resp.text}")
+            return False
+            
+        create_data = create_resp.json()
+        creation_id = create_data.get("id")
         
         if not creation_id:
-            print("❌ Failed to create media container:", create_resp)
-            return
+            print("❌ Failed to create media container:", create_data)
+            return False
             
-        print(f"🧾 Create response: {create_resp}")
+        print(f"✅ Media container created with ID: {creation_id}")
+        print(f"🧾 Full create response: {create_data}")
         
-        # Wait for media processing
+        # Wait for media processing with longer timeout
         if not check_media_status(creation_id):
-            return
+            print("❌ Media processing failed or timed out")
+            return False
             
         # Publish the reel
         print("📤 Publishing reel...")
@@ -136,11 +177,30 @@ def upload_reel():
             "creation_id": creation_id,
             "access_token": ACCESS_TOKEN
         }
-        publish_resp = requests.post(publish_url, data=publish_params).json()
-        print("✅ Publish Response:", publish_resp)
         
+        publish_resp = requests.post(publish_url, data=publish_params, timeout=60)
+        
+        if publish_resp.status_code != 200:
+            print(f"❌ Publish request failed with status {publish_resp.status_code}")
+            print(f"Response: {publish_resp.text}")
+            return False
+            
+        publish_data = publish_resp.json()
+        print("✅ Reel published successfully!")
+        print(f"📋 Publish response: {publish_data}")
+        return True
+        
+    except requests.exceptions.Timeout:
+        print("❌ Request timed out")
+        return False
     except Exception as e:
         print(f"❌ Error during upload: {str(e)}")
+        return False
 
 if __name__ == "__main__":
-    upload_reel()
+    success = upload_reel()
+    if not success:
+        print("❌ Upload failed")
+        exit(1)
+    else:
+        print("✅ Upload completed successfully")
