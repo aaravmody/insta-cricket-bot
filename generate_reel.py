@@ -117,7 +117,18 @@ def generate_reel():
     final_clip = CompositeVideoClip([clip] + text_clips).set_audio(audioclip)
     filename = f"reel_{comment_number}.mp4"
     output_file = os.path.join(output_path, filename)
-    final_clip.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
+    final_clip.write_videofile(
+    output_file,
+    fps=30,
+    codec="libx264",
+    audio_codec="aac",
+    preset="ultrafast",
+    bitrate="2500k",
+    threads=4,
+    temp_audiofile="temp-audio.m4a",
+    remove_temp=True,
+    )
+
 
     os.remove(audio_path)
     if os.path.exists(text_img_path):
