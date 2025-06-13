@@ -117,7 +117,19 @@ def generate_reel():
     final_clip = CompositeVideoClip([clip] + text_clips).set_audio(audioclip)
     filename = f"reel_{comment_number}.mp4"
     output_file = os.path.join(output_path, filename)
-    final_clip.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
+    # Save original temp file
+    temp_output = os.path.join(output_path, f"temp_{filename}")
+    final_clip.write_videofile(temp_output, fps=24, codec="libx264", audio_codec="aac")
+
+    # Re-encode with ffmpeg to fix compatibility
+    final_encoded = output_file
+    os.system(
+        f'ffmpeg -y -i "{temp_output}" -vcodec libx264 -acodec aac -pix_fmt yuv420p "{final_encoded}"'
+    )
+
+    # Clean up temp file
+    os.remove(temp_output)
+
 
     os.remove(audio_path)
     if os.path.exists(text_img_path):
