@@ -2,19 +2,15 @@ import requests
 import os
 import json
 import time
-from datetime import datetime
 
-# Environment variables for secure access
 ACCESS_TOKEN = os.environ["IG_ACCESS_TOKEN"]
 INSTAGRAM_ID = os.environ["IG_USER_ID"]
 
-# Paths
 base_path = os.path.dirname(os.path.abspath(__file__))
 tracker_path = os.path.join(base_path, "message_tracker.json")
 comments_path = os.path.join(base_path, "cricket_comments.txt")
 
-def get_todays_comment():
-    # Read all comments from the file
+def get_comment_by_number(target_number):
     with open(comments_path, "r") as f:
         content = f.read()
 
@@ -33,33 +29,30 @@ def get_todays_comment():
             current_comment = [line[2:].strip()]
         else:
             current_comment.append(line)
-
     if current_comment:
         comments.append((current_number, '\n'.join(current_comment)))
 
+    for number, comment in comments:
+        if number == target_number:
+            return comment
+    return None
+
+def upload_reel():
     try:
         with open(tracker_path, "r") as f:
             tracker = json.load(f)
-            last_used = tracker.get("last_used_message", 0)
-    except (FileNotFoundError, json.JSONDecodeError):
-        last_used = 0
+            comment_number = tracker.get("last_used_message", 0)
+    except:
+        comment_number = 0
 
-    for number, comment in comments:
-        if number == last_used:
-            return number, comment
-
-    return None, "No comment available"
-
-def upload_reel():
-    today = datetime.now().strftime('%Y%m%d')
-    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{today}.mp4"
-    comment_number, caption = get_todays_comment()
-
-    if not comment_number:
-        print("❌ No valid comment found for today.")
+    caption = get_comment_by_number(comment_number)
+    if not caption:
+        print("❌ No comment found for current number.")
         return
 
-    print("📤 Uploading reel to Instagram...")
+    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{comment_number}.mp4"
+
+    print(f"📤 Uploading reel {comment_number} to Instagram...")
     create_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media"
     create_params = {
         "video_url": video_url,
