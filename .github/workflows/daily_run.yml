@@ -2,7 +2,7 @@ name: Daily Reel Generator
 
 on:
   schedule:
-    - cron: "55 20 * * *"  # Runs at 10:00 PM IST (16:30 UTC)
+    - cron: "30 16 * * *"  # Runs at 10:00 PM IST (16:30 UTC)
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0  # Fetch all history for proper versioning
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@4
         with:
           python-version: '3.10'
 
@@ -27,9 +27,28 @@ jobs:
           pip uninstall -y moviepy
           pip install -r requirements.txt
           pip show Pillow
+          
+          # Create necessary directories
+          mkdir -p output
+          mkdir -p fonts
+          
+          # Download Montserrat-Bold font if not exists
+          if [ ! -f fonts/Montserrat-Bold.ttf ]; then
+            wget -O fonts/Montserrat-Bold.ttf https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf
+          fi
+          
+          # Initialize message_tracker.json if not exists
+          if [ ! -f message_tracker.json ]; then
+            echo '{"last_used_message": 0}' > message_tracker.json
+          fi
 
       - name: Run Python script to generate reel
-        run: python generate_reel.py
+        run: |
+          python generate_reel.py || exit 1
+          if [ ! -f output/reel_*.mp4 ]; then
+            echo "No reel was generated!"
+            exit 1
+          fi
 
       - name: Move reel to GitHub Pages folder
         run: |
@@ -45,7 +64,12 @@ jobs:
           git push
 
       - name: Upload to Instagram via Graph API
-        run: python upload_to_instagram.py
+        run: |
+          if [ -z "${{ secrets.IG_ACCESS_TOKEN }}" ] || [ -z "${{ secrets.IG_USER_ID }}" ]; then
+            echo "Instagram credentials not set!"
+            exit 1
+          fi
+          python upload_to_instagram.py || exit 1
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}

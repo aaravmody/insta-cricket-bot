@@ -5,6 +5,8 @@ import random
 from moviepy.editor import *
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
+import re
+import json
 
 # Paths
 base_path = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +58,7 @@ def get_next_comment():
     # Split by numbered comments (e.g., "1.", "2.", etc.)
     comments = []
     current_comment = []
+    current_number = None
     
     for line in content.split('\n'):
         line = line.strip()
@@ -65,20 +68,29 @@ def get_next_comment():
         # Check if line starts with a number followed by a dot
         if line[0].isdigit() and line[1] == '.':
             if current_comment:
-                comments.append('\n'.join(current_comment))
+                comments.append((current_number, '\n'.join(current_comment)))
+            current_number = int(line.split('.')[0])
             current_comment = [line[2:].strip()]  # Remove the number and dot
         else:
             current_comment.append(line)
     
     if current_comment:
-        comments.append('\n'.join(current_comment))
+        comments.append((current_number, '\n'.join(current_comment)))
     
-    # Find the first unused comment
-    for i, comment in enumerate(comments):
-        if not comment.startswith('#'):
-            comments[i] = '#' + comment
-            with open(comments_path, "w") as f:
-                f.write('\n\n'.join(comments))
+    # Read the last used message number
+    try:
+        with open(os.path.join(base_path, "message_tracker.json"), "r") as f:
+            tracker = json.load(f)
+            last_used = tracker.get("last_used_message", 0)
+    except:
+        last_used = 0
+    
+    # Find the next unused comment
+    for number, comment in comments:
+        if number > last_used:
+            # Update the tracker
+            with open(os.path.join(base_path, "message_tracker.json"), "w") as f:
+                json.dump({"last_used_message": number}, f)
             return comment
     
     return "All comments have been used."
@@ -110,7 +122,7 @@ def generate_reel():
     audioclip = AudioFileClip(audio_path)
     duration = audioclip.duration
     
-    # Split into phrases (3-4 words per phrase)
+    # Split into phrases of 3 words each
     words = comment.split()
     phrase_size = 3  # Number of words per phrase
     phrases = [' '.join(words[i:i + phrase_size]) for i in range(0, len(words), phrase_size)]
