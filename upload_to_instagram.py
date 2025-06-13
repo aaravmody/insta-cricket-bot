@@ -125,7 +125,7 @@ def upload_reel():
     except:
         message_number = 1
     
-    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{message_number}.mp4"
+    video_url = f"https://aaravmody.github.io/insta-cricket-bot/docs/output/reel_{message_number}.mp4"
     caption = get_todays_comment()
 
     print(f"🎬 Attempting to upload: {video_url}")
