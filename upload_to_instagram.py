@@ -55,8 +55,8 @@ def upload_reel():
 
 
     print(f"📤 Uploading reel {comment_number} to Instagram...")
-    print("⏳ Waiting 30 seconds for GitHub Pages to sync...")
-    time.sleep(30)
+    print("⏳ Waiting 60 seconds for GitHub Pages to sync...")
+    time.sleep(60)
 
     create_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media"
     create_params = {
@@ -85,6 +85,9 @@ def upload_reel():
         if status == "FINISHED":
             break
     else:
+        if status == "FAILED":
+            print("Error: Video processing failed.")
+            print("Full status response:", status_resp)
         print("❌ Instagram did not finish processing in time.")
         return
 
