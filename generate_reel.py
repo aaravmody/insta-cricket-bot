@@ -72,9 +72,8 @@ def get_next_comment():
         last_used = 0
 
     for number, comment in comments:
-        if number == last_used:
+        if number > last_used:
             return number, comment
-
     return None, "All comments have been used."
 
 def get_random_background():
@@ -124,8 +123,13 @@ def generate_reel():
     if os.path.exists(text_img_path):
         os.remove(text_img_path)
 
+    with open(tracker_path, "w") as f:
+        json.dump({"last_used_message": comment_number}, f)
+
     print(f"✅ Reel saved to: {output_file}")
     return output_file, comment
+    
+    
 
 if __name__ == "__main__":
     generate_reel()

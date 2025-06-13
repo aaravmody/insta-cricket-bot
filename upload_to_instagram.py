@@ -45,7 +45,7 @@ def upload_reel():
     except:
         comment_number = 0
 
-    caption = get_comment_by_number(comment_number)
+    caption = get_comment_by_number(comment_number + 1)
     if not caption:
         print("❌ No comment found for current number.")
         return
