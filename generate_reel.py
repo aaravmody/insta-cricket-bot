@@ -3,7 +3,6 @@ import asyncio
 import edge_tts
 import random
 from moviepy.editor import *
-from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import json
 
@@ -73,11 +72,10 @@ def get_next_comment():
         last_used = 0
 
     for number, comment in comments:
-        if number > last_used:
-            with open(tracker_path, "w") as f:
-                json.dump({"last_used_message": number}, f)
-            return comment
-    return "All comments have been used."
+        if number == last_used:
+            return number, comment
+
+    return None, "All comments have been used."
 
 def get_random_background():
     videos = [f for f in os.listdir(background_folder) if f.endswith(('.mp4', '.avi', '.mov'))]
@@ -86,8 +84,8 @@ def get_random_background():
     return os.path.join(background_folder, random.choice(videos))
 
 def generate_reel():
-    comment = get_next_comment()
-    print(f"📝 Today's comment: {comment}")
+    comment_number, comment = get_next_comment()
+    print(f"📝 Generating reel for comment #{comment_number}: {comment}")
 
     asyncio.run(generate_tts(comment, audio_path))
     print("🔊 TTS audio saved.")
@@ -118,7 +116,7 @@ def generate_reel():
         text_clips.append(txt_clip)
 
     final_clip = CompositeVideoClip([clip] + text_clips).set_audio(audioclip)
-    filename = f"reel_{datetime.now().strftime('%Y%m%d')}.mp4"
+    filename = f"reel_{comment_number}.mp4"
     output_file = os.path.join(output_path, filename)
     final_clip.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
 
