@@ -4,17 +4,20 @@ import json
 import time
 from datetime import datetime
 
+# Environment variables for secure access
 ACCESS_TOKEN = os.environ["IG_ACCESS_TOKEN"]
 INSTAGRAM_ID = os.environ["IG_USER_ID"]
 
+# Paths
 base_path = os.path.dirname(os.path.abspath(__file__))
 tracker_path = os.path.join(base_path, "message_tracker.json")
 comments_path = os.path.join(base_path, "cricket_comments.txt")
 
 def get_todays_comment():
+    # Read all comments from the file
     with open(comments_path, "r") as f:
         content = f.read()
-    
+
     comments = []
     current_comment = []
     current_number = None
@@ -23,7 +26,6 @@ def get_todays_comment():
         line = line.strip()
         if not line:
             continue
-            
         if line[0].isdigit() and line[1] == '.':
             if current_comment:
                 comments.append((current_number, '\n'.join(current_comment)))
@@ -31,7 +33,7 @@ def get_todays_comment():
             current_comment = [line[2:].strip()]
         else:
             current_comment.append(line)
-    
+
     if current_comment:
         comments.append((current_number, '\n'.join(current_comment)))
 
@@ -39,13 +41,13 @@ def get_todays_comment():
         with open(tracker_path, "r") as f:
             tracker = json.load(f)
             last_used = tracker.get("last_used_message", 0)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         last_used = 0
 
     for number, comment in comments:
         if number == last_used:
             return number, comment
-    
+
     return None, "No comment available"
 
 def upload_reel():
@@ -53,7 +55,11 @@ def upload_reel():
     video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{today}.mp4"
     comment_number, caption = get_todays_comment()
 
-    print("Uploading reel to Instagram...")
+    if not comment_number:
+        print("❌ No valid comment found for today.")
+        return
+
+    print("📤 Uploading reel to Instagram...")
     create_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media"
     create_params = {
         "video_url": video_url,
@@ -63,44 +69,46 @@ def upload_reel():
     }
 
     create_resp = requests.post(create_url, data=create_params).json()
-    print("Create response:", create_resp)
+    print("🧾 Create response:", create_resp)
 
     creation_id = create_resp.get("id")
     if not creation_id:
-        print("❌ Failed to create reel container.")
+        print("❌ Failed to create media container.")
         return
 
-    print("Waiting for video processing to finish...")
+    print("⏳ Waiting for Instagram to process the reel...")
     status_url = f"https://graph.facebook.com/v19.0/{creation_id}?fields=status_code&access_token={ACCESS_TOKEN}"
-    
+
     for i in range(10):
         time.sleep(5)
         status_resp = requests.get(status_url).json()
         status = status_resp.get("status_code")
-        print(f"Check {i+1}: status = {status}")
+        print(f"🔁 Check {i+1}: Status = {status}")
         if status == "FINISHED":
             break
     else:
-        print("❌ Media not ready after retries.")
+        print("❌ Instagram did not finish processing in time.")
         return
 
-    print("Publishing reel...")
+    print("🚀 Publishing the reel...")
     publish_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media_publish"
     publish_params = {
         "creation_id": creation_id,
         "access_token": ACCESS_TOKEN
     }
+
     publish_resp = requests.post(publish_url, data=publish_params).json()
     print("✅ Publish response:", publish_resp)
 
     if "id" in publish_resp:
-        # ✅ Save next message number to tracker
         try:
             with open(tracker_path, "w") as f:
                 json.dump({"last_used_message": comment_number + 1}, f)
             print(f"📌 Updated message_tracker to {comment_number + 1}")
         except Exception as e:
             print("⚠️ Failed to update tracker:", e)
+    else:
+        print("❌ Publish failed, tracker not updated.")
 
 if __name__ == "__main__":
     upload_reel()
