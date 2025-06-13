@@ -49,10 +49,15 @@ def upload_reel():
     if not caption:
         print("❌ No comment found for current number.")
         return
+    
+    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{comment_number}.mp4?v={int(time.time())}"
 
-    video_url = f"https://aaravmody.github.io/insta-cricket-bot/output/reel_{comment_number}.mp4"
+
 
     print(f"📤 Uploading reel {comment_number} to Instagram...")
+    print("⏳ Waiting 30 seconds for GitHub Pages to sync...")
+    time.sleep(30)
+
     create_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ID}/media"
     create_params = {
         "video_url": video_url,
