@@ -61,11 +61,9 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-
-          git pull --rebase 
-
           git add message_tracker.json docs/output/reel_*.mp4
           git commit -m "Update message tracker and new reel" || echo "Nothing to commit"
+          git pull --rebase 
           git push
 
 
