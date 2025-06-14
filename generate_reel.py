@@ -2,6 +2,7 @@ import os
 import asyncio
 import edge_tts
 import random
+import re
 from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
 import json
@@ -53,13 +54,18 @@ def get_next_comment():
         line = line.strip()
         if not line:
             continue
-        if line[0].isdigit() and line[1] == '.':
+        match = re.match(r"^(\d+)\.\s*(.*)", line)
+        if match:
             if current_comment:
                 comments.append((current_number, '\n'.join(current_comment)))
-            current_number = int(line.split('.')[0])
-            current_comment = [line[2:].strip()]
+            current_number = int(match.group(1))
+            current_comment = [match.group(2).strip()]
         else:
             current_comment.append(line)
+
+    if current_comment:
+        comments.append((current_number, '\n'.join(current_comment)))
+
 
     if current_comment:
         comments.append((current_number, '\n'.join(current_comment)))
@@ -88,6 +94,9 @@ def get_random_background():
 
 def generate_reel():
     comment_number, comment = get_next_comment()
+    if comment_number is None:
+        print("🚫 All comments have been used.")
+        return
     print(f"📝 Generating reel for comment #{comment_number}: {comment}")
 
     asyncio.run(generate_tts(comment, audio_path))
