@@ -64,17 +64,21 @@ def get_next_comment():
     if current_comment:
         comments.append((current_number, '\n'.join(current_comment)))
 
+    # Load last used comment number
     try:
         with open(tracker_path, "r") as f:
             tracker = json.load(f)
             last_used = tracker.get("last_used_message", 0)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         last_used = 0
 
-    for number, comment in comments:
+    # Get the next comment
+    for number, comment in sorted(comments):
         if number > last_used:
             return number, comment
+
     return None, "All comments have been used."
+
 
 def get_random_background():
     videos = [f for f in os.listdir(background_folder) if f.endswith(('.mp4', '.avi', '.mov'))]
