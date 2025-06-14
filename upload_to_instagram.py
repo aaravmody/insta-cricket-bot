@@ -127,7 +127,23 @@ def upload_reel():
     
     HASHTAGS = "#cricket #indiancricket #ipl #funnycricket #cricketreels #sportsreels #instacricket #funny #memecricket #cricketmemes #cricketlovers #cricketfunny #crickethumor #cricketvideos #cricketlovers #cricketfunny #crickethumor #cricketvideos"
     video_url = f"https://aaravmody.github.io/insta-cricket-bot/docs/output/reel_{message_number}.mp4"
-    caption = get_todays_comment() + "\n\n" + HASHTAGS
+    try:
+        with open("message_tracker.json", "r") as f:
+            tracker = json.load(f)
+            message_number = tracker.get("last_used_message", 1)
+            comment = tracker.get("last_used_comment")
+    except Exception as e:
+        print("❌ Failed to read tracker:", e)
+        exit(1)
+
+    if not comment:
+        print("❌ No comment available for this reel.")
+        comment = "Follow us for more funny cricket comments"
+        exit(1)
+
+    caption = comment + "\n\n" + HASHTAGS
+    video_url = f"https://aaravmody.github.io/insta-cricket-bot/docs/output/reel_{message_number}.mp4"
+
 
 
     print(f"🎬 Attempting to upload: {video_url}")

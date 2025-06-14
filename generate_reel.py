@@ -157,7 +157,11 @@ def generate_reel():
 
     # Update tracker
     with open(tracker_path, "w") as f:
-        json.dump({"last_used_message": comment_number}, f)
+        json.dump({
+            "last_used_message": comment_number,
+            "last_used_comment": comment
+        }, f, indent=4)
+
 
     print(f"✅ Reel saved to: {output_file}")
     
