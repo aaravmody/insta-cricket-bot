@@ -2,8 +2,12 @@ name: Daily Reel Generator
 
 on:
   schedule:
+    - cron: "30 11 * * *"  # 5:00 PM IST
+    - cron: "30 14 * * *"  # 8:00 PM IST
     - cron: "30 16 * * *"  # 10:00 PM IST
+    - cron: "30 17 * * *"  # 11:00 PM IST
   workflow_dispatch:
+
 
 jobs:
   run-script:

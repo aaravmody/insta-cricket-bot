@@ -125,8 +125,10 @@ def upload_reel():
     except:
         message_number = 1
     
+    HASHTAGS = "#cricket #indiancricket #ipl #funnycricket #cricketreels #sportsreels #instacricket #funny #memecricket #cricketmemes #cricketlovers #cricketfunny #crickethumor #cricketvideos #cricketlovers #cricketfunny #crickethumor #cricketvideos"
     video_url = f"https://aaravmody.github.io/insta-cricket-bot/docs/output/reel_{message_number}.mp4"
-    caption = get_todays_comment()
+    caption = get_todays_comment() + "\n\n" + HASHTAGS
+
 
     print(f"🎬 Attempting to upload: {video_url}")
     print(f"📝 Caption: {caption[:100]}...")
