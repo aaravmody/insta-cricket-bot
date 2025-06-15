@@ -43,7 +43,7 @@ def create_text_image(text, size=(1000, 400), max_font_size=100):
     return text_img_path
 
 def get_next_comment():
-    with open(comments_path, "r") as f:
+    with open(comments_path, "r",encoding="utf-8") as f:
         content = f.read()
 
     comments = []
