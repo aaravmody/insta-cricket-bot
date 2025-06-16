@@ -110,23 +110,24 @@ def generate_reel():
     filename = f"reel_news.mp4"
     output_file = os.path.join(output_path, filename)
 
-    print("🎬 Encoding video for Instagram...")
+    print("🎬 Encoding video for Instagram with 50MB cap...")
+
     final_clip.write_videofile(
-        output_file, 
-        fps=30,
+        output_file,
+        fps=24,  # Lower FPS to reduce size
         codec="libx264",
         audio_codec="aac",
+        bitrate="500k",  # Enforce max video bitrate
+        audio_bitrate="96k",  # Lower audio bitrate
+        preset="slow",  # Better compression
         temp_audiofile="temp-audio.m4a",
         remove_temp=True,
-        preset="medium",
         ffmpeg_params=[
             "-pix_fmt", "yuv420p",
-            "-crf", "23",
-            "-maxrate", "8000k",
-            "-bufsize", "12000k",
             "-movflags", "+faststart"
         ]
     )
+
 
     os.remove(audio_path)
     if os.path.exists(text_img_path):
