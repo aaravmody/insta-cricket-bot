@@ -66,9 +66,17 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add message_tracker.json docs/output/reel_news.mp4
-          git commit -m "Update news tracker and add daily reel" || echo "Nothing to commit"
-          git pull --rebase
+
+          # Stage all tracked and new changes (safe)
+          git add -A
+
+          # Commit if there’s anything to commit
+          git diff --cached --quiet || git commit -m "Update news tracker and add daily reel"
+
+          # Pull only if repo is not up to date (optional)
+          git pull --rebase || true
+
+          # Push to origin
           git push
 
       - name: 📤 Upload to Instagram
