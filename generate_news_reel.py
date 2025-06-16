@@ -48,15 +48,6 @@ def get_news_script():
     with open(script_path, "r", encoding="utf-8") as f:
         news = f.read().strip()
 
-    try:
-        with open(tracker_path, "r") as f:
-            tracker = json.load(f)
-            if tracker.get("last_used_script") == news:
-                print("🚫 Already used this script.")
-                return None
-    except:
-        pass
-
     return news
 
 def get_random_background():
@@ -135,11 +126,6 @@ def generate_reel():
     os.remove(audio_path)
     if os.path.exists(text_img_path):
         os.remove(text_img_path)
-
-    with open(tracker_path, "w") as f:
-        json.dump({
-            "last_used_script": script
-        }, f, indent=4)
 
     print(f"✅ Reel saved to: {output_file}")
     if os.path.exists(output_file):
