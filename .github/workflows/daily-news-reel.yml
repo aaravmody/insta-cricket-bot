@@ -1,0 +1,80 @@
+name: Daily News Reel Generator
+
+on:
+  schedule:
+    - cron: "30 16 * * *"  # 10:00 PM IST
+  workflow_dispatch:
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: 🔧 Install FFmpeg
+        run: |
+          sudo apt update
+          sudo apt install -y ffmpeg
+
+      - name: 🧪 Set up virtual environment and install requirements
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+          mkdir -p output docs/output fonts
+
+          if [ ! -f fonts/Montserrat-Bold.ttf ]; then
+            wget -O fonts/Montserrat-Bold.ttf https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf
+          fi
+
+          if [ ! -f message_tracker.json ]; then
+            echo '{"last_used_script": ""}' > message_tracker.json
+          fi
+
+      - name: 📰 Generate cricket news script
+        run: |
+          source venv/bin/activate
+          python generate_cricket_news.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: 🎬 Generate news reel
+        run: |
+          source venv/bin/activate
+          python generate_news_reel.py
+
+          if ! ls output/reel_news.mp4 1> /dev/null 2>&1; then
+            echo "❌ No reel was generated!"
+            exit 1
+          fi
+
+      - name: 📂 Move reel to GitHub Pages folder
+        run: |
+          mkdir -p docs/output
+          cp output/reel_news.mp4 docs/output/
+
+      - name: 🧾 Commit and push to GitHub Pages
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add message_tracker.json docs/output/reel_news.mp4
+          git commit -m "Update news tracker and add daily reel" || echo "Nothing to commit"
+          git pull --rebase
+          git push
+
+      - name: 📤 Upload to Instagram
+        run: |
+          source venv/bin/activate
+          python upload_news.py
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
