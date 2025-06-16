@@ -112,6 +112,9 @@ def generate_reel():
 
     print("🎬 Encoding video for Instagram with 50MB cap...")
 
+    final_clip = final_clip.resize(height=720)
+    if final_clip.w % 2 != 0:
+        final_clip = final_clip.resize(width=final_clip.w - 1)
     final_clip.write_videofile(
         output_file,
         fps=30,  # Smooth motion
