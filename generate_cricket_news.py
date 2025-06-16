@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import os
 import datetime
-from google import genai
-from google.genai.types import GenerateContentConfig, Tool, GoogleSearch
+from google.generativeai import configure, GenerativeModel
 
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("❌ Please set the GEMINI_API_KEY environment variable")
-client = genai.Client(api_key=api_key)
 
-MODEL = "gemini-2.0-flash"
+configure(api_key=api_key)
+
+model = GenerativeModel("gemini-1.5-flash")
 SCRIPT_OUTPUT = "cricket_news_script.txt"
 
 def generate_cricket_news_script():
@@ -22,19 +22,10 @@ def generate_cricket_news_script():
     )
 
     print("⏳ Fetching and curating today's cricket news with Gemini...")
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=GenerateContentConfig(
-            tools=[Tool(google_search=GoogleSearch())],
-            temperature=0.7,
-            max_output_tokens=512
-        )
-    )
-
+    response = model.generate_content(prompt)
     script = response.text.strip()
-    print("✅ Script generated. Writing to file:", SCRIPT_OUTPUT)
 
+    print("✅ Script generated. Writing to file:", SCRIPT_OUTPUT)
     with open(SCRIPT_OUTPUT, "w", encoding="utf-8") as f:
         f.write(script)
 
