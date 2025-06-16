@@ -67,9 +67,6 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          # Stage all tracked and new changes (safe)
-          git add -A
-
           # Commit if there’s anything to commit
           git diff --cached --quiet || git commit -m "Update news tracker and add daily reel"
 
