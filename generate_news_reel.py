@@ -114,12 +114,12 @@ def generate_reel():
 
     final_clip.write_videofile(
         output_file,
-        fps=24,  # Lower FPS to reduce size
+        fps=30,  # Smooth motion
         codec="libx264",
         audio_codec="aac",
-        bitrate="500k",  # Enforce max video bitrate
-        audio_bitrate="96k",  # Lower audio bitrate
-        preset="slow",  # Better compression
+        bitrate="4000k",           # 4 Mbps video bitrate
+        audio_bitrate="128k",      # Good audio quality
+        preset="slow",             # Better compression
         temp_audiofile="temp-audio.m4a",
         remove_temp=True,
         ffmpeg_params=[
