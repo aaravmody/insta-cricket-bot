@@ -71,7 +71,7 @@ jobs:
           git diff --cached --quiet || git commit -m "Update news tracker and add daily reel"
 
           # Pull only if repo is not up to date (optional)
-          git pull --rebase || true
+          git pull --rebase --autostash || true
 
           # Push to origin
           git push
