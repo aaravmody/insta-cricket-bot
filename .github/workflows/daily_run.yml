@@ -2,6 +2,7 @@ name: Daily Reel Generator
 
 on:
   schedule:
+    - cron: "30 09 * * *" 
     - cron: "30 11 * * *"  # 5:00 PM IST
     - cron: "30 14 * * *"  # 8:00 PM IST
     - cron: "00 16 * * *"  # 9:30 PM IST
@@ -60,11 +61,26 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add message_tracker.json docs/output/reel_*.mp4
-          git commit -m "Update message tracker and new reel" || echo "Nothing to commit"
-          git pull --rebase 
-          git push
-
+          
+          # Stash any existing changes
+          git stash
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Pop stashed changes if any
+          git stash pop || true
+          
+          if ! git diff-index --quiet HEAD; then
+              echo "Changes detected, committing and pushing to GitHub Pages..."
+              git add message_tracker.json docs/output/reel_*.mp4 # Be explicit about files
+              git commit -m "Automated: Update message tracker and new reel [skip ci]" # [skip ci] prevents recursive workflows
+              git push # This pushes the changes to the 'main' branch (or whatever branch is checked out)
+              echo "pushed_to_gh_pages=true" >> $GITHUB_OUTPUT # Set an output to indicate a push happened
+          else
+              echo "No changes to commit or push for GitHub Pages."
+              echo "pushed_to_gh_pages=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload to Instagram via Graph API
         run: |
