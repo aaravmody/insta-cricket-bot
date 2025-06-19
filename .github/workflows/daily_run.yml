@@ -5,7 +5,6 @@ on:
     - cron: "30 09 * * *" 
     - cron: "30 11 * * *"  # 5:00 PM IST
     - cron: "30 14 * * *"  # 8:00 PM IST
-    - cron: "00 16 * * *"  # 9:30 PM IST
   workflow_dispatch:
 
 
