@@ -3,12 +3,14 @@ import json
 import requests
 import tempfile
 from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 def upload_to_youtube(video_url, title, description, tags):
     print("🎥 Starting YouTube upload...")
 
+    # Load credentials from GitHub Secrets
     creds = Credentials(
         None,
         refresh_token=os.environ["YT_REFRESH_TOKEN"],
@@ -17,27 +19,31 @@ def upload_to_youtube(video_url, title, description, tags):
         client_secret=os.environ["YT_CLIENT_SECRET"],
         scopes=["https://www.googleapis.com/auth/youtube.upload"]
     )
-    creds.refresh()
+    creds.refresh(Request())  # ✅ Fixed: Added missing Request() here
+
     youtube = build("youtube", "v3", credentials=creds)
 
+    # Download video from GitHub Pages
     print("⬇️ Downloading video...")
     temp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
     r = requests.get(video_url)
     temp.write(r.content)
     temp.flush()
 
+    # Define video metadata
     body = {
         "snippet": {
             "title": title,
             "description": description,
             "tags": tags,
-            "categoryId": "17"
+            "categoryId": "17"  # Sports
         },
         "status": {
             "privacyStatus": "public"
         }
     }
 
+    # Upload to YouTube
     media = MediaFileUpload(temp.name, chunksize=-1, resumable=True, mimetype="video/mp4")
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
 
@@ -60,11 +66,12 @@ def main():
         message_number = 1
         comment = "Follow for more funny cricket moments!"
 
+    # Short-style metadata
     title = f"Funny Cricket Moment #{message_number} #Shorts"
     description = comment + "\n\n#Shorts\nSubscribe for daily cricket laughs!"
     tags = ["cricket", "funny", "memes", "sports", "IPL", "shorts", "reels"]
 
-
+    # Video URL hosted on GitHub Pages
     video_url = f"https://aaravmody.github.io/insta-cricket-bot/docs/output/reel_{message_number}.mp4"
 
     upload_to_youtube(video_url, title, description, tags)
