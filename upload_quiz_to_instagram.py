@@ -3,6 +3,7 @@ import os
 import json
 import time
 from datetime import datetime
+import re
 
 ACCESS_TOKEN = os.environ["IG_ACCESS_TOKEN"]
 INSTAGRAM_ID = os.environ["IG_USER_ID"]
